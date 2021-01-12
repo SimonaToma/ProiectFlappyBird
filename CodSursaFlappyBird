@@ -1,0 +1,255 @@
+BIRD
+
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+public class Bird : MonoBehaviour 
+{
+	public float upForce= 200f;	
+	private bool isDead = false;		
+	public Animator anim;				
+	private Rigidbody2D rb2d;			
+
+
+	void Start()
+	{
+		anim = GetComponent<Animator>();
+		rb2d = GetComponent<Rigidbody2D>();
+	}
+
+	void Update()
+	{
+		if (isDead == false) 
+		{
+			if (Input.GetMouseButtonDown(0)) 
+			{
+				
+				anim.SetTrigger ("Flap")
+				rb2d.velocity = Vector2.zero;
+				rb2d.AddForce(new Vector2(0, upForce));
+			}
+		}
+	}
+
+	void OnCollisionEnter2D(Collision2D other)
+	{
+		
+		rb2d.velocity = Vector2.zero;.
+		isDead = true;
+		anim.SetTrigger ("Die");
+		GameControl.instance.BirdDied ();
+	}
+}
+
+
+
+
+
+
+
+COLUMN
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Column : MonoBehaviour
+{
+    private void OnTriggerEnter2D (Collider2D other)
+    {
+        if (other.GetComponent<Bird> () != null)
+        {
+            GameControl.instance.BirdScored ();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+COLUMNPOOL
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+using UnityEngine;
+using System.Collections;
+
+public class ColumnPool : MonoBehaviour 
+{
+    public GameObject columnPrefab;                                
+    public int columnPoolSize = 5;                                   
+    public float spawnRate = 4f;                               
+    public float columnMin = -1f;                                  
+    public float columnMax = 3.5f;                                  
+
+    private GameObject[] columns;                                    
+    private Vector2 objectPoolPosition = new Vector2 (-15f,-25f);        
+    private float spawnXPosition = 10f;
+    private float timeSinceLastSpawned;
+    private int currentColumn = 0;
+
+
+    void Start()
+    {
+        columns = new GameObject[columnPoolSize];
+        for(int i = 0; i < columnPoolSize; i++)
+        {
+            columns[i] = (GameObject)Instantiate(columnPrefab, objectPoolPosition, Quaternion.identity);
+        }
+    }
+
+    void Update()
+    {
+        timeSinceLastSpawned += Time.deltaTime;
+
+        if (GameControl.instance.gameOver == false && timeSinceLastSpawned >= spawnRate) 
+        {    
+            timeSinceLastSpawned = 0;
+
+            if (currentColumn >= columnPoolSize) 
+            {
+                currentColumn = 0;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+GAMECONTROL
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public class GameControl : MonoBehaviour
+{
+    public static GameControl instance;
+    public GameObject gameOvertext;
+    public Text scoreText;
+    public bool gameOver = false;
+    public float scrollSpeed=-1.5f;
+
+    private int score = 0;
+
+    void Awake()
+    {
+        if (instance == null) {
+            instance = this;
+        }
+        else if (instance != this) {
+            Destroy (gameObject);
+        }
+    }
+
+    void Update () 
+    {
+        if (gameOver==true && Input.GetMouseButtonDown(0))
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+    
+    public void BirdScored()
+    {
+        if (gameOver)
+        {
+            return;
+        }
+        score++;
+        scoreText.text = "Score: " + score.ToString();
+    }
+
+    public void BirdDied()
+    {
+        gameOvertext.SetActive (true);
+        gameOver=true;
+    }
+}
+
+
+
+
+
+
+
+
+
+REPEATINGBACKGROUND
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class RepeatingBackhround : MonoBehaviour
+{
+    private BoxCollider2D groundCollider;
+    private float groundHorizontalLength;
+
+
+    void Start()
+    {
+       groundCollider = GetComponent<BoxCollider2D> ();
+       groundHorizontalLength = groundCollider.size.x;
+    }
+
+    void Update()
+    {
+        if(transform.position.x < -groundHorizontalLength)
+        {
+            RepositionBackground();
+        }
+    }
+    private void RepositionBackground()
+    {
+        Vector2 groundOffset = new Vector2 (groundHorizontalLength * 2f, 0);
+        transform.position = (Vector2)transform.position + groundOffset;
+    }
+}
+
+
+
+
+
+
+SCROLLINGOBJECT
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ScrollingObject : MonoBehaviour
+{
+    private Rigidbody2D rb2d;
+
+    void Start()
+    {
+        rb2d=GetComponent<Rigidbody2D>();
+        rb2d.velocity=new Vector2(GameControl.instance.scrollSpeed, 0);
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (GameControl.instance.gameOver==true)
+        {
+            rb2d.velocity=Vector2.zero;
+        }
+    }
+}
+
